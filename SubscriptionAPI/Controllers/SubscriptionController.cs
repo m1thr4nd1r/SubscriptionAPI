@@ -84,7 +84,7 @@ namespace SubscriptionAPI.Controllers
             var createPriceScheme = new CreatePricingSchemeRequest
             {
                 SchemeType = "unit",
-                Price = 1,
+                Price = 0,
             };
 
             var createPlan = new CreatePlanRequest
@@ -96,7 +96,7 @@ namespace SubscriptionAPI.Controllers
                 Currency = "BRL",
                 Interval = "month",
                 IntervalCount = interval,
-                TrialPeriodDays = (trial) ? 7 : 1,
+                TrialPeriodDays = (trial) ? (int?)7 : null,
                 PricingScheme = createPriceScheme,
             };
 
@@ -172,13 +172,13 @@ namespace SubscriptionAPI.Controllers
                     case "yellowbook":
 
                         items.Add(new CreateIncrementRequest
-                                                    {
-                                                         IncrementType = "Flat",
-                                                         Value = 139.9d,
+                        {
+                            IncrementType = "Flat",
+                            Value = 139, //Value = 139.9d,
 
-                                                         Description = "YellowBook",
-                                                         Cycles = 1,
-                                                    });
+                            Description = "YellowBook",
+                            Cycles = 1,
+                        });
                         break;
                 }
 
@@ -199,7 +199,7 @@ namespace SubscriptionAPI.Controllers
 
         // POST: api/Subscription
         [HttpPost]
-        public string Post([FromBody] Object value)
+        public string Post([FromBody] object value)
         {
             string basicAuthUserName = "sk_test_4AdjlqpseatnmgbW";
             string basicAuthPassword = "pk_test_zD9Jq9IoaSx1JVOk";
@@ -214,7 +214,7 @@ namespace SubscriptionAPI.Controllers
                 var card = InitializeCard(data, customer.Id, customer.Name, client);
                 InitializeSubscription(data, customer.Id, card.Id, client);
             }
-            catch (ErrorException)
+            catch (ErrorException ex)
             {
                 return "Falha ao realizar a assinatura.";
             }
