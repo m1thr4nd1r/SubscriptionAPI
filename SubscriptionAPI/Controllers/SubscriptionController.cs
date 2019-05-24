@@ -224,8 +224,31 @@ namespace SubscriptionAPI.Controllers
 
         // DELETE: api/Subscription
         [HttpDelete]
-        public void Delete(int id)
+        public string Delete([FromBody] object value)
         {
+            JObject data = JObject.Parse(value.ToString());
+
+            string subId = (string)data?["assinatura_id"];
+
+            if (string.IsNullOrEmpty(subId))
+                return "Falha em cancelar assinatura.";
+
+            string basicAuthUserName = "sk_test_4AdjlqpseatnmgbW";
+            string basicAuthPassword = "pk_test_zD9Jq9IoaSx1JVOk";
+
+            var client = new MundiAPIClient(basicAuthUserName, basicAuthPassword);
+
+            var deleteSub = new CreateCancelSubscriptionRequest
+            {
+                CancelPendingInvoices = true
+            };
+
+            var cancelSub = client.Subscriptions.CancelSubscription(subId);
+
+            if (string.IsNullOrEmpty(cancelSub.Id))
+                throw new MissingMemberException("Falha em cancelar assinatura.");
+
+            return "Cancelamento realizado com sucesso.";
         }
     }
 }
