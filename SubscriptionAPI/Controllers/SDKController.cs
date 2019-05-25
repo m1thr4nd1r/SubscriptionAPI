@@ -306,13 +306,13 @@ namespace SubscriptionAPI.Controllers
                 }
 
                 if (string.IsNullOrEmpty(cancelSub.Id))
-                    throw new InvalidOperationException("Falha ao cancelar assinatura");
+                    throw new InvalidOperationException("Falha no cancelamento da assinatura.");
 
                 return cancelSub;
             }
             catch (APIException ex)
             {
-                throw new InvalidOperationException("Falha ao cancelar assinatura", ex);
+                throw new InvalidOperationException("Falha ao cancelar assinatura.", ex);
             }
         }
     }
