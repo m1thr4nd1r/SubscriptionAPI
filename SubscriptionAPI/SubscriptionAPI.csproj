@@ -8,6 +8,10 @@
     <DocumentationFile>C:\Users\victor.guimaraes\Documents\subscriptionAPI\SubscriptionAPI\SubscriptionAPI.xml</DocumentationFile>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>C:\Users\victor.guimaraes\Documents\subscriptionAPI\SubscriptionAPI\SubscriptionAPI.xml</DocumentationFile>
+  </PropertyGroup>
+
   <ItemGroup>
     <Folder Include="wwwroot\" />
   </ItemGroup>
