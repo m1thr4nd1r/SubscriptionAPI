@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SubscriptionAPI.Models;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace SubscriptionAPI
@@ -20,6 +21,8 @@ namespace SubscriptionAPI
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+
+            services.Configure<MundiPaggApi>(Configuration.GetSection("MundiPaggApi"));
 
             services.AddSwaggerGen(c =>
             {

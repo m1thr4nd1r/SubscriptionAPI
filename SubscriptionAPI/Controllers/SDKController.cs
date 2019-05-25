@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SubscriptionAPI.Controllers
 {
-    public class SdkController
+    public static class SdkController
     {
         #region Fields
 
@@ -19,9 +19,11 @@ namespace SubscriptionAPI.Controllers
         {
             get
             {
+                string user = Environment.GetEnvironmentVariable("API_USER");
+                string password = Environment.GetEnvironmentVariable("API_PASSWORD");
+
                 if (_client == null)
-                    _client = new MundiAPIClient(Environment.GetEnvironmentVariable("MundiPaggUser"),
-                                                Environment.GetEnvironmentVariable("MundiPaggPassword"));
+                    _client = new MundiAPIClient(user, password);
 
                 return _client;
             }
@@ -306,13 +308,13 @@ namespace SubscriptionAPI.Controllers
                 }
 
                 if (string.IsNullOrEmpty(cancelSub.Id))
-                    throw new InvalidOperationException("Falha ao cancelar assinatura");
+                    throw new InvalidOperationException("Falha no cancelamento da assinatura.");
 
                 return cancelSub;
             }
             catch (APIException ex)
             {
-                throw new InvalidOperationException("Falha ao cancelar assinatura", ex);
+                throw new InvalidOperationException(ex.Message, ex);
             }
         }
     }
