@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using MundiAPI.PCL.Models;
 using MundiAPI.PCL;
 using MundiAPI.PCL.Exceptions;
+using Newtonsoft.Json;
 
 namespace SubscriptionAPI.Controllers
 {
@@ -197,6 +198,49 @@ namespace SubscriptionAPI.Controllers
             return sub;
         }
 
+        public GetSubscriptionResponse UpdateCard(JObject data, MundiAPIClient client)
+        {
+            string customerID = (string)data?["cliente_id"];
+
+            if (string.IsNullOrEmpty(customerID))
+                throw new Exception("Usuario invalido");
+
+            var cards = client.Customers.GetCards(customerID);
+
+            if (cards.Data.Count == 0)
+                throw new Exception("Cartão inexistente.");
+
+            var subscriptions = client.Subscriptions.GetSubscriptions(null, null, null, null, customerID);
+
+            string number = (string)data?["cartao"]?["numero"];
+            int expiration_Month = (int)data?["cartao"]?["expiracao_mes"];
+            int expiration_Year = (int)data?["cartao"]?["expiracao_ano"];
+            string cvv = (string)data?["cartao"]?["cvv"];
+
+            var card = cards.Data[0];
+
+            var createCard = new CreateCardRequest
+            {
+                Number = number,
+                HolderName = card.HolderName,
+                ExpMonth = expiration_Month,
+                ExpYear = expiration_Year,
+                Cvv = cvv
+            };
+
+            var updateCard = new UpdateSubscriptionCardRequest
+            {
+                Card = createCard,
+            };
+
+            var subscription = subscriptions.Data.Find(s => s.Card.Id.Equals(card.Id));
+
+            if (subscriptions == null)
+                throw new Exception("Não existem assinaturas para este cliente.");
+
+            return client.Subscriptions.UpdateSubscriptionCard(subscription.Id, updateCard);
+        }
+
         // POST: api/Subscription
         [HttpPost]
         public string Post([FromBody] object value)
@@ -220,6 +264,26 @@ namespace SubscriptionAPI.Controllers
             }
 
             return "Assinatura realizada com sucesso!";
+        }
+
+        // PATCH api/Subscription
+        [HttpPatch]
+        public string Patch([FromBody] object value)
+        {
+            string basicAuthUserName = "sk_test_4AdjlqpseatnmgbW";
+            string basicAuthPassword = "pk_test_zD9Jq9IoaSx1JVOk";
+
+            var client = new MundiAPIClient(basicAuthUserName, basicAuthPassword);
+
+            JObject data = JObject.Parse(value.ToString());
+
+            var sub = UpdateCard(data, client);
+
+            if (string.IsNullOrEmpty(sub.Id))
+                throw new Exception("Falha ao atualizar cartão.");
+
+            var jObj = JObject.Parse(JsonConvert.SerializeObject(sub));
+            return jObj.ToString(Formatting.Indented);
         }
 
         // DELETE: api/Subscription
