@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using MundiAPI.PCL.Models;
-using MundiAPI.PCL;
-using MundiAPI.PCL.Exceptions;
 using Newtonsoft.Json;
+using SubscriptionAPI.Models;
 
 namespace SubscriptionAPI.Controllers
 {
@@ -16,303 +10,102 @@ namespace SubscriptionAPI.Controllers
     [ApiController]
     public class SubscriptionController : ControllerBase
     {
-        public GetCustomerResponse InitializeCustomer(JObject data, MundiAPIClient client)
+        public string PrintJson(object obj)
         {
-            string name = (string)data?["cliente"]?["nome"];
-            string email = (string)data?["cliente"]?["email"];
-
-            var customers = client.Customers.GetCustomers(name, null, null, null, email);
-
-            if (customers.Data.Count > 0)
-                return customers.Data[0];
-
-            var createCustomer = new CreateCustomerRequest
-            {
-                Name = name,
-                Email = email
-            };
-
-            var customer = client.Customers.CreateCustomer(createCustomer);
-
-            if (string.IsNullOrEmpty(customer.Id))
-                throw new MissingMemberException("Falha em criar o usuário.");
-
-            return customer;
-        }
-
-        public GetCardResponse InitializeCard(JObject data, string customerId, string customerName, MundiAPIClient client)
-        {
-            string number = (string)data?["cartao"]?["numero"];
-            int expiration_Month = (int)data?["cartao"]?["expiracao_mes"];
-            int expiration_Year = (int)data?["cartao"]?["expiracao_ano"];
-            string cvv = (string)data?["cartao"]?["cvv"];
-
-            var cards = client.Customers.GetCards(customerId);
-            var card = cards.Data.Find(c =>
-                                       c.FirstSixDigits.Equals(number.Substring(0, 6)) &&
-                                       c.LastFourDigits.Equals(number.Substring(number.Length - 4)) &&
-                                       c.ExpMonth == expiration_Month &&
-                                       c.ExpYear == expiration_Year
-                                      );
-
-            if (card != null)
-                return card;
-
-            var createCard = new CreateCardRequest
-            {
-                Number = number,
-                HolderName = customerName,
-                ExpMonth = expiration_Month,
-                ExpYear = expiration_Year,
-                Cvv = cvv
-            };
-
-            card = client.Customers.CreateCard(customerId, createCard);
-
-            if (string.IsNullOrEmpty(card.Id))
-                throw new MissingMemberException("Falha em criar o cartão.");
-
-            return card;
-        }
-
-        public GetPlanResponse InitializePlan(string type, int interval, bool trial, MundiAPIClient client)
-        {
-            var plans = client.Plans.GetPlans(null, null, type);
-
-            if (plans.Data.Count > 0)
-                return plans.Data[0];
-
-            var createPriceScheme = new CreatePricingSchemeRequest
-            {
-                SchemeType = "unit",
-                Price = 0,
-            };
-
-            var createPlan = new CreatePlanRequest
-            {
-                Name = type,
-                //BillingDays = new List<int> { 5, 10, 15, 20, 25 },
-                Quantity = 1,
-
-                Currency = "BRL",
-                Interval = "month",
-                IntervalCount = interval,
-                TrialPeriodDays = (trial) ? (int?)7 : null,
-                PricingScheme = createPriceScheme,
-            };
-
-            try
-            {
-                var plan = client.Plans.CreatePlan(createPlan);
-
-                if (string.IsNullOrEmpty(plan?.Id))
-                    throw new MissingMemberException($"Falha ao criar o plano {type}");
-
-                return plan;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-                throw;
-            }
-        }
-
-        public GetSubscriptionResponse InitializeSubscription(JObject data, string customerId, string cardId, MundiAPIClient client)
-        {
-            GetPlanResponse plan = null;
-            var createSub = new CreateSubscriptionRequest();
-            var items = new List<CreateIncrementRequest>(); 
-
-            foreach (var product in data["produtos"])
-            {
-                string type = (string)product["tipo"];
-
-                switch (type)
-                {
-                    case "plano":
-                        string planId = (string)product["plano_id"];
-
-                        try
-                        {
-                            plan = client.Plans.GetPlan(planId);
-                        }
-                        catch (ErrorException)
-                        {
-                            throw;
-                        }
-
-                        break;
-                    case "trimestral":
-                        bool trial = (bool?)product?["periodo_teste"] ?? false;
-
-                        plan = InitializePlan(type, 3, trial, client);
-
-                        items.Add(new CreateIncrementRequest
-                        {
-                            IncrementType = "Flat",
-                            Value = 69,//Value = 69.9d,
-
-                            Description = "Assinatura",
-                        });
-
-                        break;
-                    case "mensal":
-                        trial = (bool?)product?["periodo_teste"] ?? false;
-
-                        plan = InitializePlan(type, 1, trial, client);
-
-                        items.Add(new CreateIncrementRequest
-                        {
-                            IncrementType = "Flat",
-                            Value = 24,//Value = 24.5d,
-
-                            Description = "Assinatura",
-                        });
-
-                        break;
-                    case "yellowbook":
-
-                        items.Add(new CreateIncrementRequest
-                        {
-                            IncrementType = "Flat",
-                            Value = 139, //Value = 139.9d,
-
-                            Description = "YellowBook",
-                            Cycles = 1,
-                        });
-                        break;
-                }
-
-            }
-
-            createSub.PlanId = plan?.Id;
-            createSub.CustomerId = customerId;
-            createSub.CardId = cardId;
-            createSub.Increments = items;
-
-            var sub = client.Subscriptions.CreateSubscription(createSub);
-
-            if (string.IsNullOrEmpty(sub?.Id))
-                throw new MissingMemberException("Falha ao criar assinatura.");
-
-            return sub;
-        }
-
-        public GetSubscriptionResponse UpdateCard(JObject data, MundiAPIClient client)
-        {
-            string customerID = (string)data?["cliente_id"];
-
-            if (string.IsNullOrEmpty(customerID))
-                throw new Exception("Usuario invalido");
-
-            var cards = client.Customers.GetCards(customerID);
-
-            if (cards.Data.Count == 0)
-                throw new Exception("Cartão inexistente.");
-
-            var subscriptions = client.Subscriptions.GetSubscriptions(null, null, null, null, customerID);
-
-            string number = (string)data?["cartao"]?["numero"];
-            int expiration_Month = (int)data?["cartao"]?["expiracao_mes"];
-            int expiration_Year = (int)data?["cartao"]?["expiracao_ano"];
-            string cvv = (string)data?["cartao"]?["cvv"];
-
-            var card = cards.Data[0];
-
-            var createCard = new CreateCardRequest
-            {
-                Number = number,
-                HolderName = card.HolderName,
-                ExpMonth = expiration_Month,
-                ExpYear = expiration_Year,
-                Cvv = cvv
-            };
-
-            var updateCard = new UpdateSubscriptionCardRequest
-            {
-                Card = createCard,
-            };
-
-            var subscription = subscriptions.Data.Find(s => s.Card.Id.Equals(card.Id));
-
-            if (subscriptions == null)
-                throw new Exception("Não existem assinaturas para este cliente.");
-
-            return client.Subscriptions.UpdateSubscriptionCard(subscription.Id, updateCard);
+            var jObj = JObject.Parse(JsonConvert.SerializeObject(obj));
+            return jObj.ToString(Formatting.Indented);
         }
 
         // POST: api/Subscription
         [HttpPost]
         public string Post([FromBody] object value)
         {
-            string basicAuthUserName = "sk_test_4AdjlqpseatnmgbW";
-            string basicAuthPassword = "pk_test_zD9Jq9IoaSx1JVOk";
-
-            var client = new MundiAPIClient(basicAuthUserName, basicAuthPassword);
-
-            JObject data = JObject.Parse(value.ToString());
+            JObject data = null;
 
             try
             {
-                var customer = InitializeCustomer(data, client);
-                var card = InitializeCard(data, customer.Id, customer.Name, client);
-                InitializeSubscription(data, customer.Id, card.Id, client);
+                data = JObject.Parse(value.ToString());
             }
-            catch (ErrorException ex)
+            catch (JsonReaderException ex)
             {
-                return "Falha ao realizar a assinatura.";
+                Console.WriteLine(ex.StackTrace);
+                return PrintJson(new ErrorMsg { Error = "Formato de entrada invalida." });
             }
 
-            return "Assinatura realizada com sucesso!";
+            try
+            {
+                var customer = SdkController.InitializeCustomer(data);
+                var card = SdkController.InitializeCard(data, customer.Id, customer.Name);
+                var sub = SdkController.InitializeSubscription(data, customer.Id, card.Id);
+
+                return PrintJson(sub);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return PrintJson(new ErrorMsg { Error = "Falha ao realizar a assinatura." });
+            }
         }
 
-        // PATCH api/Subscription
+        // PATCH: api/Subscription
         [HttpPatch]
         public string Patch([FromBody] object value)
         {
-            string basicAuthUserName = "sk_test_4AdjlqpseatnmgbW";
-            string basicAuthPassword = "pk_test_zD9Jq9IoaSx1JVOk";
+            JObject data = null;
 
-            var client = new MundiAPIClient(basicAuthUserName, basicAuthPassword);
+            try
+            {
+                data = JObject.Parse(value.ToString());
+            }
+            catch (JsonReaderException ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return PrintJson(new ErrorMsg { Error = "Formato de entrada invalida." });
+            }
 
-            JObject data = JObject.Parse(value.ToString());
+            try
+            {
+                var sub = SdkController.UpdateSubscriptionCard(data);
 
-            var sub = UpdateCard(data, client);
+                if (string.IsNullOrEmpty(sub.Id))
+                    return PrintJson(new ErrorMsg { Error = "Falha ao atualizar cartão da assinatura." });
 
-            if (string.IsNullOrEmpty(sub.Id))
-                throw new Exception("Falha ao atualizar cartão.");
-
-            var jObj = JObject.Parse(JsonConvert.SerializeObject(sub));
-            return jObj.ToString(Formatting.Indented);
+                return PrintJson(sub);
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.StackTrace);
+                return PrintJson(new ErrorMsg { Error = ex.Message });
+            }
         }
-
+        
         // DELETE: api/Subscription
         [HttpDelete]
         public string Delete([FromBody] object value)
         {
-            JObject data = JObject.Parse(value.ToString());
+            JObject data = null;
 
-            string subId = (string)data?["assinatura_id"];
-
-            if (string.IsNullOrEmpty(subId))
-                return "Falha em cancelar assinatura.";
-
-            string basicAuthUserName = "sk_test_4AdjlqpseatnmgbW";
-            string basicAuthPassword = "pk_test_zD9Jq9IoaSx1JVOk";
-
-            var client = new MundiAPIClient(basicAuthUserName, basicAuthPassword);
-
-            var deleteSub = new CreateCancelSubscriptionRequest
+            try
             {
-                CancelPendingInvoices = true
-            };
+                data = JObject.Parse(value.ToString());
+            }
+            catch (JsonReaderException ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return PrintJson(new ErrorMsg { Error = "Formato de entrada invalida." });
+            }
 
-            var cancelSub = client.Subscriptions.CancelSubscription(subId);
+            try
+            {
+                var cancelSub = SdkController.CancelSubscription(data);
 
-            if (string.IsNullOrEmpty(cancelSub.Id))
-                throw new MissingMemberException("Falha em cancelar assinatura.");
-
-            return "Cancelamento realizado com sucesso.";
+                return PrintJson(cancelSub);
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.StackTrace);
+                return PrintJson(new ErrorMsg { Error = ex.Message });
+            }
         }
     }
 }
