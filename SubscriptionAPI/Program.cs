@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace SubscriptionAPI
 {
@@ -12,6 +14,12 @@ namespace SubscriptionAPI
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+
+                .UseKestrel()
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseConfiguration(new ConfigurationBuilder().AddCommandLine(args).Build())
+                .UseIISIntegration()
+
                 .UseStartup<Startup>();
     }
 }
