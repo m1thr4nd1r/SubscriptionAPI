@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using SubscriptionAPI.Models;
+using Microsoft.Extensions.Options;
 
 namespace SubscriptionAPI.Controllers
 {
@@ -10,6 +11,12 @@ namespace SubscriptionAPI.Controllers
     [ApiController]
     public class SubscriptionController : ControllerBase
     {
+        public SubscriptionController(IOptions<MundiPaggApi> apiSettings)
+        {
+            Environment.SetEnvironmentVariable("API_USER", apiSettings.Value.User);
+            Environment.SetEnvironmentVariable("API_PASSWORD", apiSettings.Value.Password);
+        }
+
         public string PrintJson(object obj)
         {
             var jObj = JObject.Parse(JsonConvert.SerializeObject(obj));

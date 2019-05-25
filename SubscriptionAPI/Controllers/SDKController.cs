@@ -19,11 +19,8 @@ namespace SubscriptionAPI.Controllers
         {
             get
             {
-                string user = Environment.GetEnvironmentVariable("MundiPaggUser") ??
-                              Environment.GetEnvironmentVariable("ASPNETCORE_MundiPaggUser");
-
-                string password = Environment.GetEnvironmentVariable("MundiPaggPassword") ??
-                                  Environment.GetEnvironmentVariable("ASPNETCORE_MundiPaggPassword");
+                string user = Environment.GetEnvironmentVariable("API_USER");
+                string password = Environment.GetEnvironmentVariable("API_PASSWORD");
 
                 if (_client == null)
                     _client = new MundiAPIClient(user, password);
