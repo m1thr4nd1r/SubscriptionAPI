@@ -312,7 +312,7 @@ namespace SubscriptionAPI.Controllers
             }
             catch (APIException ex)
             {
-                throw new InvalidOperationException("Falha ao cancelar assinatura.", ex);
+                throw new InvalidOperationException(ex.Message, ex);
             }
         }
     }
