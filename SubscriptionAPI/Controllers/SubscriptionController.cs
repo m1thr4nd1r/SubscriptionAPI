@@ -17,6 +17,7 @@ namespace SubscriptionAPI.Controllers
             Environment.SetEnvironmentVariable("API_PASSWORD", apiSettings.Value.Password);
         }
 
+        [NonAction]
         public string PrintJson(object obj)
         {
             var jObj = JObject.Parse(JsonConvert.SerializeObject(obj));

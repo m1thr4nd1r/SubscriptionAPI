@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SubscriptionAPI.Models;
 using Swashbuckle.AspNetCore.Swagger;
+using System;
+using System.IO;
 
 namespace SubscriptionAPI
 {
@@ -26,7 +28,20 @@ namespace SubscriptionAPI
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info { Title = "Subscription API", Version = "v1" });
+                c.SwaggerDoc("v1",
+                             new Info
+                             {
+                                 Title = "Subscription API",
+                                 Version = "v1"
+                             }
+                            );
+
+                var basePath = AppContext.BaseDirectory;
+                var assemblyName = System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
+                var fileName = Path.GetFileName(assemblyName + ".xml");
+                string xmlPath = Path.Combine(basePath, fileName);
+
+                c.IncludeXmlComments(xmlPath);
             });
         }
 
@@ -49,7 +64,7 @@ namespace SubscriptionAPI
             // specifying the Swagger JSON endpoint.
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("./swagger/v1/swagger.json", "Subscription API V1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Subscription API V1");
             });
 
             app.UseHttpsRedirection();
