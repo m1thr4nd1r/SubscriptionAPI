@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SubscriptionAPI.Controllers
 {
-    public class SdkController
+    public static class SdkController
     {
         #region Fields
 
@@ -19,9 +19,14 @@ namespace SubscriptionAPI.Controllers
         {
             get
             {
+                string user = Environment.GetEnvironmentVariable("MundiPaggUser") ??
+                              Environment.GetEnvironmentVariable("ASPNETCORE_MundiPaggUser");
+
+                string password = Environment.GetEnvironmentVariable("MundiPaggPassword") ??
+                                  Environment.GetEnvironmentVariable("ASPNETCORE_MundiPaggPassword");
+
                 if (_client == null)
-                    _client = new MundiAPIClient(Environment.GetEnvironmentVariable("MundiPaggUser"),
-                                                Environment.GetEnvironmentVariable("MundiPaggPassword"));
+                    _client = new MundiAPIClient(user, password);
 
                 return _client;
             }
