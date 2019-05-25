@@ -17,7 +17,7 @@ namespace SubscriptionAPI
 
                 .UseKestrel()
                 .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseConfiguration(new ConfigurationBuilder().AddCommandLine(args).Build())
+                .UseConfiguration(new ConfigurationBuilder().AddCommandLine(args).AddEnvironmentVariables().Build())
                 .UseIISIntegration()
 
                 .UseStartup<Startup>();
